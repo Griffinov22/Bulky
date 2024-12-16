@@ -1,0 +1,29 @@
+﻿@page
+@model IndexModel
+@using BulkyWebRazor_Temp.Models
+@{
+    ViewData["Title"] = "Home page";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Welcome</h1>
+    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+    <div class="row">
+        <table class="table table-bordered table-primary">
+            <thead>
+                <tr>
+                <th>Name</th>
+                <th>Display Order</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach(Category cat in Model.Categories!) {
+                    <tr>
+                        <td>@cat.Name</td>
+                        <td>@cat.DisplayOrder</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
