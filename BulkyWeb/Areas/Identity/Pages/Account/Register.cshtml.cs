@@ -4,12 +4,14 @@
 
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Threading;
 using System.Threading.Tasks;
+using Bulky.DataAccess.Repository.IRepository;
 using Bulky.Models;
 using Bulky.Utility;
 using Microsoft.AspNetCore.Authentication;
@@ -34,6 +36,7 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
         private readonly IUserEmailStore<IdentityUser> _emailStore;
         private readonly ILogger<RegisterModel> _logger;
         private readonly IEmailSender _emailSender;
+        private readonly IUnitOfWork _unitOfWork;
 
         public RegisterModel(
             UserManager<IdentityUser> userManager,
@@ -41,7 +44,8 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
             SignInManager<IdentityUser> signInManager,
             RoleManager<IdentityRole> roleManager,
             ILogger<RegisterModel> logger,
-            IEmailSender emailSender)
+            IEmailSender emailSender,
+            IUnitOfWork unitOfWork)
         {
             _userManager = userManager;
             _userStore = userStore;
@@ -50,6 +54,7 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
             _roleManager = roleManager;
             _logger = logger;
             _emailSender = emailSender;
+            _unitOfWork = unitOfWork;
         }
 
         /// <summary>
@@ -109,6 +114,21 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
             [ValidateNever]
             [Display(Name = "Role List")]
             public IEnumerable<SelectListItem> RoleList { get; set; }
+
+            [Required]
+            public string Name { get; set; }
+            public string? StreetAddress { get; set; }
+            public string? City { get; set; }
+            public string? State { get; set; }
+            public string? PostalCode { get; set; }
+            [DataType(DataType.PhoneNumber)]
+            public string? PhoneNumber { get; set; }
+
+            public string? CompanyId { get; set; }
+            [ValidateNever]
+            [Display(Name = "Company List")]
+            public IEnumerable<SelectListItem> CompanyList { get; set; }
+
         }
 
 
@@ -124,8 +144,10 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
             }
             Input = new InputModel
             {
-                RoleList = _roleManager.Roles.Select(role => new SelectListItem { Text = role.Name, Value = role.Name })
+                RoleList = _roleManager.Roles.Select(role => new SelectListItem { Text = role.Name, Value = role.Name }),
+                CompanyList = _unitOfWork.Company.GetAll().Select(obj => new SelectListItem { Text = obj.Name, Value = obj.Id.ToString() })
             };
+
 
             // -- end --
 
@@ -142,7 +164,20 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
                 var user = CreateUser();
 
                 // extending default IdentityUser to ApplicationUser
+                user.Name = Input.Name;
+                user.StreetAddress = Input.StreetAddress;
+                user.City = Input.City;
+                user.State = Input.State;
+                user.PostalCode = Input.PostalCode;
+                user.PhoneNumber = Input.PhoneNumber;
 
+                // possible company if user is employee
+                bool IsEmployee = Int32.TryParse(Input.CompanyId, out int CompanyId);
+
+                if (Input.Role == SD.Role_Company && IsEmployee)
+                {
+                    user.CompanyId = CompanyId;
+                }
                 // -- end --
 
                 await _userStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);

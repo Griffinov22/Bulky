@@ -33,7 +33,7 @@ namespace Bulky.DataAccess.Repository
             query = query.Where(filter);
             if (!String.IsNullOrEmpty(includeProperties))
             {
-                foreach (string includeProp in includeProperties.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+                foreach (string includeProp in includeProperties.Split([','], StringSplitOptions.RemoveEmptyEntries))
                 {
                     query = query.Include(includeProp);
                 }

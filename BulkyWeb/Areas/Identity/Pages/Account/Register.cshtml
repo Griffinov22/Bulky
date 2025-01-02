@@ -16,17 +16,22 @@
                     <h3 class="border-bottom pb-3 mb-4 text-secondary text-center">Create a new account.</h3>
                     
                     <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
-                    <div class="form-floating mb-3 col-md-6">
+                    <div class="form-floating mb-3 col-md-12">
                         <input asp-for="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
                         <label asp-for="Input.Email" class="ms-2 text-muted">Email</label>
                         <span asp-validation-for="Input.Email" class="text-danger"></span>
                     </div>
 
                     <div class="form-floating mb-3 col-md-6">
-                        <select asp-for="Input.Role" asp-items="@Model.Input.RoleList" class="form-select">
-                            <option disabled selected value="">-- Select Role --</option>
-                        </select>
-                        <label asp-for="Input.RoleList" class="ms-2 text-muted"></label>
+                        <input asp-for="Input.Name" class="form-control" aria-required="true" placeholder="Jane Doe" />
+                        <label asp-for="Input.Name" class="ms-2 text-muted"></label>
+                        <span asp-validation-for="Input.Name" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-floating mb-3 col-md-6">
+                        <input asp-for="Input.PhoneNumber" class="form-control" aria-required="true" placeholder="999-999-9999" />
+                        <label asp-for="Input.PhoneNumber" class="ms-2 text-muted"></label>
+                        <span asp-validation-for="Input.PhoneNumber" class="text-danger"></span>
                     </div>
 
                     <div class="form-floating mb-3 col-md-6">
@@ -40,7 +45,46 @@
                         <label asp-for="Input.ConfirmPassword" class="ms-2 text-muted">Confirm Password</label>
                         <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
                     </div>
-                    
+
+                    <div class="form-floating mb-3 col-md-6">
+                        <input asp-for="Input.StreetAddress" class="form-control" aria-required="true" placeholder="123 Jane Drive" />
+                        <label asp-for="Input.StreetAddress" class="ms-2 text-muted"></label>
+                        <span asp-validation-for="Input.StreetAddress" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-floating mb-3 col-md-6">
+                        <input asp-for="Input.City" class="form-control" aria-required="true" placeholder="Beverly Hills" />
+                        <label asp-for="Input.City" class="ms-2 text-muted"></label>
+                        <span asp-validation-for="Input.City" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-floating mb-3 col-md-6">
+                        <input asp-for="Input.State" class="form-control" aria-required="true" placeholder="California" />
+                        <label asp-for="Input.State" class="ms-2 text-muted"></label>
+                        <span asp-validation-for="Input.State" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-floating mb-3 col-md-6">
+                        <input asp-for="Input.PostalCode" type="number" inputmode="numeric" class="form-control" aria-required="true" placeholder="99999" />
+                        <label asp-for="Input.PostalCode" class="ms-2 text-muted"></label>
+                        <span asp-validation-for="Input.PostalCode" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-floating mb-3 col-md-6">
+                        <select id="role-select" asp-for="Input.Role" asp-items="@Model.Input.RoleList" class="form-select">
+                            <option disabled selected value="">-- Select Role --</option>
+                        </select>
+                        <label asp-for="Input.RoleList" class="ms-2 text-muted"></label>
+                    </div>
+
+                    <!-- Only visible if (Input.Role == Company) -->
+                    <div class="form-floating mb-3 col-md-6">
+                        <select id="company-select" asp-for="Input.CompanyId" asp-items="@Model.Input.CompanyList" class="form-select d-none">
+                            <option disabled selected value="">-- Select Company --</option>
+                        </select>
+                        <label asp-for="Input.CompanyList" class="ms-2 text-muted d-none"></label>
+                    </div>
+
                     <button id="registerSubmit" type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
                 </form>
             </div>
@@ -85,4 +129,19 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script type="text/javascript">
+        $('#role-select').on('change', (e) => {
+            if (e.currentTarget.value == 'Company') {
+                $('#company-select').parent().children().each(function () {
+                    $(this).removeClass('d-none');
+                    $(this).addClass('d-block');
+                })
+            } else {
+                $('#company-select').parent().children().each(function () {
+                    $(this).addClass('d-none');
+                    $(this).removeClass('d-block');
+                })
+            }
+        })
+    </script>
 }
