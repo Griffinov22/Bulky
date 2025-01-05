@@ -139,7 +139,7 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
             {
                 await _roleManager.CreateAsync(new IdentityRole(SD.Role_Customer));
                 await _roleManager.CreateAsync(new IdentityRole(SD.Role_Company));
-                await _roleManager.CreateAsync(new IdentityRole(SD.Role_Employer));
+                await _roleManager.CreateAsync(new IdentityRole(SD.Role_Employee));
                 await _roleManager.CreateAsync(new IdentityRole(SD.Role_Admin));
             }
             Input = new InputModel

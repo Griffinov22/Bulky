@@ -22,7 +22,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
 
         public IActionResult Index()
         {
-            List<Product> objProductList = _unitOfWork.Product.GetAll("Category").ToList();
+            List<Product> objProductList = _unitOfWork.Product.GetAll(includeProperties:"Category").ToList();
             return View(objProductList);
         }
 
@@ -100,7 +100,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
                 // re-instantiate vm
 
                 pvm.CategoryList = _unitOfWork.Category
-                .GetAll("Category")
+                .GetAll(includeProperties: "Category")
                 .Select(e => new SelectListItem { Text = e.Name, Value = e.Id.ToString() });
 
                 return View(pvm); // invalid Product submitted
@@ -112,7 +112,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
         [HttpGet]
         public IActionResult GetAll()
         {
-            List<Product> objProductList = _unitOfWork.Product.GetAll("Category").ToList();
+            List<Product> objProductList = _unitOfWork.Product.GetAll(includeProperties: "Category").ToList();
             return Json(new { data = objProductList });
         }
 
