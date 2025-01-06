@@ -125,11 +125,11 @@
                                 <div class="col-9">
                                     @if (User.IsInRole(SD.Role_Admin) || User.IsInRole(SD.Role_Employee))
                                     {
-                                        <input asp-for="OrderHeader.Carrier" type="text" class="form-control" />
+                                        <input id="carrier" asp-for="OrderHeader.Carrier" type="text" class="form-control" />
                                     }
                                     else
                                     {
-                                        <input readonly asp-for="OrderHeader.Carrier" type="text" class="form-control" />
+                                        <input id="carrier" readonly asp-for="OrderHeader.Carrier" type="text" class="form-control" />
                                     }
                                 </div>
                             </div>
@@ -138,11 +138,11 @@
                                 <div class="col-9">
                                     @if (User.IsInRole(SD.Role_Admin) || User.IsInRole(SD.Role_Employee))
                                     {
-                                        <input asp-for="OrderHeader.TrackingNumber" type="text" class="form-control" />
+                                        <input id="trackingNumber" asp-for="OrderHeader.TrackingNumber" type="text" class="form-control" />
                                     }
                                     else
                                     {
-                                        <input readonly asp-for="OrderHeader.TrackingNumber" type="text" class="form-control" />
+                                        <input id="trackingNumber" readonly asp-for="OrderHeader.TrackingNumber" type="text" class="form-control" />
                                     }
                                 </div>
                             </div>
@@ -234,23 +234,26 @@
                                     </div>
                                 </li>
                             </ul>
-                            @if (Model.OrderHeader.PaymentStatus == SD.PaymentStatusPending && Model.OrderHeader.OrderStatus == SD.StatusShipped)
+                            @if (Model.OrderHeader.PaymentStatus == SD.PaymentStatusDelayedPayment && 
+                            Model.OrderHeader.OrderStatus == SD.StatusShipped)
                             {
-                                <button type="submit" class="btn btn-success form-control my-1">Pay Now</button>
+                                <button asp-controller="Order" asp-action="PayNow" class="btn btn-success form-control my-1">Pay Now</button>
 
                             }
 
                             @if (User.IsInRole(SD.Role_Admin) || User.IsInRole(SD.Role_Employee))
                             {
-                                @if(Model.OrderHeader.OrderStatus == SD.StatusApproved){
-                                    <button type="submit" class="btn btn-primary form-control my-1">Start Processing</button>
+                                @if (Model.OrderHeader.OrderStatus == SD.StatusApproved)
+                                {
+                                    <button type="submit" asp-controller="Order" asp-action="StartProcessing" class="btn btn-primary form-control my-1">Start Processing</button>
                                 }
-                                @if (Model.OrderHeader.OrderStatus == SD.StatusInProcess){
-                                    <button type="submit" class="btn btn-primary form-control my-1">Ship Order</button>
+                                @if (Model.OrderHeader.OrderStatus == SD.StatusInProcess)
+                                {
+                                    <button id="shipOrderBtn" asp-controller="Order" asp-action="ShipOrder" class="btn btn-primary form-control my-1">Ship Order</button>
                                 }
                                 @if (Model.OrderHeader.OrderStatus != SD.StatusRefund && Model.OrderHeader.OrderStatus != SD.StatusCancelled && Model.OrderHeader.OrderStatus != SD.StatusShipped)
                                 {
-                                    <button type="submit" class="btn btn-danger form-control my-1">Cancel Order</button>
+                                    <button asp-controller="Order" asp-action="CancelOrder" class="btn btn-danger form-control my-1">Cancel Order</button>
                                 }
                             }
                         </div>
@@ -260,3 +263,23 @@
         </div>
     </div>
 </form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script type="text/javascript">
+        document.getElementById('shipOrderBtn').addEventListener('click', (e) => {
+            const trackingNumber = document.getElementById("trackingNumber");
+            const carrier = document.getElementById("carrier");
+
+            if (trackingNumber.value.trim() == "" || carrier.value.trim() == "") {
+            e.preventDefault();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: 'Please enter a carrier and a tracking number!'
+                });
+            }
+        });
+    </script>
+}

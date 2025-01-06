@@ -5,6 +5,8 @@ using Bulky.Utility;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Stripe;
+using Stripe.Checkout;
 using Stripe.Climate;
 using System.Diagnostics;
 using System.Security.Claims;
@@ -12,6 +14,7 @@ using System.Security.Claims;
 namespace BulkyWeb.Areas.Admin.Controllers
 {
     [Area("Admin")]
+    [Authorize]
     public class OrderController : Controller
     {
         private readonly IUnitOfWork _unitOfWork;
@@ -65,6 +68,146 @@ namespace BulkyWeb.Areas.Admin.Controllers
             TempData["success"] = "Order Details updated successfuly";
 
             return RedirectToAction("Details", new { orderId = orderHeader.Id });
+        }
+
+        [HttpPost]
+        [Authorize(Roles = SD.Role_Admin + "," + SD.Role_Employee)]
+        public IActionResult StartProcessing()
+        {
+            _unitOfWork.OrderHeader.UpdateStatus(Ovm.OrderHeader.Id, SD.StatusInProcess);
+            _unitOfWork.Save();
+
+            TempData["success"] = "Order Details updated successfuly";
+
+            return RedirectToAction("Details", new { orderId = Ovm.OrderHeader.Id });
+        }
+        [HttpPost]
+        [Authorize(Roles = SD.Role_Admin + "," + SD.Role_Employee)]
+        public IActionResult ShipOrder()
+        {
+            // update tracking number and carrier on shipped status
+            OrderHeader orderHeader = _unitOfWork.OrderHeader.Get(o => o.Id == Ovm.OrderHeader.Id);
+            orderHeader.TrackingNumber = Ovm.OrderHeader.TrackingNumber;
+            orderHeader.Carrier = Ovm.OrderHeader.Carrier;
+
+            orderHeader.OrderStatus = SD.StatusShipped;
+            orderHeader.ShippingDate = DateTime.Now;
+
+            // if company, then payment is due +30 days from shipment
+            if (orderHeader.OrderStatus == SD.PaymentStatusDelayedPayment)
+            {
+                orderHeader.PaymentDueDate = DateOnly.FromDateTime(DateTime.Now.AddDays(30));
+            }
+
+            _unitOfWork.OrderHeader.Update(orderHeader);
+            _unitOfWork.Save();
+
+            TempData["success"] = "Order Shipped successfuly";
+
+            return RedirectToAction("Details", new { orderId = Ovm.OrderHeader.Id });
+        }
+        [HttpPost]
+        [Authorize(Roles = SD.Role_Admin + "," + SD.Role_Employee)]
+        public IActionResult CancelOrder()
+        {
+            OrderHeader orderHeader = _unitOfWork.OrderHeader.Get(o => o.Id == Ovm.OrderHeader.Id);
+
+            if (orderHeader.PaymentStatus == SD.PaymentStatusApproved)
+            {
+                // customer paid -> we need to refund using Stripe
+                RefundCreateOptions options = new RefundCreateOptions
+                {
+                    Reason = RefundReasons.RequestedByCustomer,
+                    PaymentIntent = orderHeader.PaymentIntentId,
+                };
+
+                // refund completed
+                RefundService service = new RefundService();
+                Refund refund = service.Create(options);
+
+                _unitOfWork.OrderHeader.UpdateStatus(orderHeader.Id, SD.StatusCancelled, SD.StatusCancelled);
+            } else
+            {
+                _unitOfWork.OrderHeader.UpdateStatus(orderHeader.Id, SD.StatusCancelled, SD.StatusCancelled);
+            }
+
+            _unitOfWork.Save();
+
+            TempData["success"] = "Order Cancelled successfuly";
+            return RedirectToAction("Details", new { orderId = Ovm.OrderHeader.Id });
+        }
+        [HttpPost]
+        [Authorize(Roles = SD.Role_Admin + "," + SD.Role_Employee)]
+        public IActionResult PayNow()
+        {
+            // company paying (companies have net30)
+
+            Ovm.OrderHeader = _unitOfWork.OrderHeader.Get(u => u.Id == Ovm.OrderHeader.Id, "ApplicationUser");
+            Ovm.OrderDetails = _unitOfWork.OrderDetail.GetAll(u => u.OrderHeaderId == Ovm.OrderHeader.Id, "Product");
+
+            // stripe logic
+            string domain = "https://localhost:5000";
+            var options = new SessionCreateOptions
+            {
+                SuccessUrl = $"{domain}/admin/order/PaymentConfirmation?orderHeaderId={Ovm.OrderHeader.Id}",
+                CancelUrl = $"{domain}/admin/order/details?orderId={Ovm.OrderHeader.Id}",
+                LineItems = new List<SessionLineItemOptions>(),
+                Mode = "payment",
+            };
+
+            // adding line items
+            foreach (OrderDetail orderDetail in Ovm.OrderDetails)
+            {
+                SessionLineItemOptions item = new SessionLineItemOptions
+                {
+                    PriceData = new SessionLineItemPriceDataOptions
+                    {
+                        UnitAmount = (long)(orderDetail.Price * 100), // $20.50 -> 2050
+                        Currency = "USD",
+                        ProductData = new SessionLineItemPriceDataProductDataOptions
+                        {
+                            Name = orderDetail.Product.Title,
+                        }
+                    },
+                    Quantity = orderDetail.Count
+
+                };
+                options.LineItems.Add(item);
+
+            }
+
+            var service = new SessionService();
+            Session session = service.Create(options);
+
+            // payment intent Id will be null because the client needs to be routed to Stripe. It will only be populated once the client has paid.
+            _unitOfWork.OrderHeader.UpdateStripePaymentId(Ovm.OrderHeader.Id, session.Id, session.PaymentIntentId);
+            _unitOfWork.Save();
+
+            Response.Headers.Add("Location", session.Url);
+            return new StatusCodeResult(303); // redirecting to new url
+        }
+
+        public IActionResult PaymentConfirmation(int orderHeaderId)
+        {
+            OrderHeader? orderHeader = _unitOfWork.OrderHeader.Get(u => u.Id == orderHeaderId);
+
+            if (orderHeader == null) return NotFound();
+
+            if (orderHeader.PaymentStatus == SD.PaymentStatusDelayedPayment)
+            {
+                // order from a company
+                var service = new SessionService();
+                Session session = service.Get(orderHeader.SessionId);
+
+                if (session.PaymentStatus == "paid")
+                {
+                    _unitOfWork.OrderHeader.UpdateStripePaymentId(orderHeader.Id, session.Id, session.PaymentIntentId);
+                    _unitOfWork.OrderHeader.UpdateStatus(orderHeader.Id, orderHeader.OrderStatus, SD.PaymentStatusApproved);
+                    _unitOfWork.Save();
+                }
+            }
+
+            return View(orderHeaderId);
         }
 
         #region API_CALLS

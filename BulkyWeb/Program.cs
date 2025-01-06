@@ -28,6 +28,14 @@ builder.Services.ConfigureApplicationCookie(options => {
     options.AccessDeniedPath = "/Identity/Account/AccessDenied";
 });
 
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(100);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
 builder.Services.AddRazorPages();
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -52,6 +60,8 @@ app.UseRouting();
 
 app.UseAuthentication(); // is username and password valid?
 app.UseAuthorization(); // can you access this page?
+
+app.UseSession();
 
 app.MapRazorPages();
 app.MapControllerRoute(
