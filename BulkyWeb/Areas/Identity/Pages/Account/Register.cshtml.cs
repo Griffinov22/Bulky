@@ -135,13 +135,6 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
         public async Task OnGetAsync(string returnUrl = null)
         {
             // Learning
-            if (!await _roleManager.RoleExistsAsync(SD.Role_Customer))
-            {
-                await _roleManager.CreateAsync(new IdentityRole(SD.Role_Customer));
-                await _roleManager.CreateAsync(new IdentityRole(SD.Role_Company));
-                await _roleManager.CreateAsync(new IdentityRole(SD.Role_Employee));
-                await _roleManager.CreateAsync(new IdentityRole(SD.Role_Admin));
-            }
             Input = new InputModel
             {
                 RoleList = _roleManager.Roles.Select(role => new SelectListItem { Text = role.Name, Value = role.Name }),
@@ -217,7 +210,13 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
                     }
                     else
                     {
-                        await _signInManager.SignInAsync(user, isPersistent: false);
+                        if (User.IsInRole(SD.Role_Admin))
+                        {
+                            TempData["success"] = "New User Created Successfully";
+                        } else
+                        {
+                            await _signInManager.SignInAsync(user, isPersistent: false);
+                        }
                         return LocalRedirect(returnUrl);
                     }
                 }

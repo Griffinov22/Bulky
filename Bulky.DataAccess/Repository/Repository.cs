@@ -65,7 +65,10 @@ namespace Bulky.DataAccess.Repository
 
         public void Remove(T entity)
         {
-            dbSet.Remove(entity);
+            if (_db.Entry(entity).State != EntityState.Detached)
+            {
+                dbSet.Remove(entity);
+            }
         }
 
         public void RemoveRange(IEnumerable<T> entities)

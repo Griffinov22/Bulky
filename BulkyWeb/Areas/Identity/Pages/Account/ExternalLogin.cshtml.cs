@@ -17,6 +17,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
+using Bulky.Models;
+using Bulky.Utility;
 
 namespace BulkyWeb.Areas.Identity.Pages.Account
 {
@@ -84,6 +86,20 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
             [Required]
             [EmailAddress]
             public string Email { get; set; }
+            [Required]
+            public string Name { get; set; }
+            [Required]
+            public string StreetAddress { get; set; }
+            [Required]
+            public string City { get; set; }
+            [Required]
+            public string State { get; set; }
+            [Required]
+            [DataType(DataType.PostalCode)]
+            public string PostalCode { get; set; }
+            [Required]
+            [DataType(DataType.PhoneNumber)]
+            public string PhoneNumber { get; set; }
         }
         
         public IActionResult OnGet() => RedirectToPage("./Login");
@@ -131,7 +147,12 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
                 {
                     Input = new InputModel
                     {
-                        Email = info.Principal.FindFirstValue(ClaimTypes.Email)
+                        Email = info.Principal.FindFirstValue(ClaimTypes.Email),
+                        Name = info.Principal.FindFirstValue(ClaimTypes.Name),
+                        StreetAddress = info.Principal.FindFirstValue(ClaimTypes.StreetAddress),
+                        PostalCode = info.Principal.FindFirstValue(ClaimTypes.PostalCode),
+                        PhoneNumber = info.Principal.FindFirstValue(ClaimTypes.HomePhone ?? ClaimTypes.MobilePhone ?? ClaimTypes.OtherPhone)
+
                     };
                 }
                 return Page();
@@ -152,6 +173,12 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
             if (ModelState.IsValid)
             {
                 var user = CreateUser();
+                user.Name = Input.Name;
+                user.PhoneNumber = Input.PhoneNumber;
+                user.StreetAddress = Input.StreetAddress;
+                user.City = Input.City;
+                user.State = Input.State;
+                user.PostalCode = Input.PostalCode;
 
                 await _userStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
                 await _emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
@@ -159,6 +186,9 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
                 var result = await _userManager.CreateAsync(user);
                 if (result.Succeeded)
                 {
+                    // add to customer role
+                    await _userManager.AddToRoleAsync(user, SD.Role_Customer);
+
                     result = await _userManager.AddLoginAsync(user, info);
                     if (result.Succeeded)
                     {
@@ -197,11 +227,11 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
             return Page();
         }
 
-        private IdentityUser CreateUser()
+        private ApplicationUser CreateUser()
         {
             try
             {
-                return Activator.CreateInstance<IdentityUser>();
+                return Activator.CreateInstance<ApplicationUser>();
             }
             catch
             {

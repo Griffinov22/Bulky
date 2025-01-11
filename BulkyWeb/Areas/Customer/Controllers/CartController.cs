@@ -196,6 +196,8 @@ namespace BulkyWeb.Areas.Customer.Controllers
                     _unitOfWork.OrderHeader.UpdateStripePaymentId(orderHeader.Id, session.Id, session.PaymentIntentId);
                     _unitOfWork.OrderHeader.UpdateStatus(orderHeader.Id, SD.StatusApproved, SD.PaymentStatusApproved);
                     _unitOfWork.Save();
+
+                    HttpContext.Session.Clear();
                 }
             }
 
@@ -205,6 +207,7 @@ namespace BulkyWeb.Areas.Customer.Controllers
 
             _unitOfWork.ShoppingCart.RemoveRange(shoppingCarts);
             _unitOfWork.Save();
+
 
             return View(id);
         }
@@ -239,7 +242,7 @@ namespace BulkyWeb.Areas.Customer.Controllers
         }
         public IActionResult Minus(int cartId)
         {
-            ShoppingCart cart = _unitOfWork.ShoppingCart.Get(u => u.Id == cartId);
+            ShoppingCart cart = _unitOfWork.ShoppingCart.Get(u => u.Id == cartId, tracked: true);
             if (cart.Count - 1 > 0)
             {
                 cart.Count--;
@@ -248,6 +251,9 @@ namespace BulkyWeb.Areas.Customer.Controllers
             else
             {
                 _unitOfWork.ShoppingCart.Remove(cart);
+
+                int amountOfCarts = _unitOfWork.ShoppingCart.GetAll(u => u.ApplicationUserId == cart.ApplicationUserId).Count() - 1;
+                HttpContext.Session.SetInt32(SD.SessionCart, amountOfCarts);
             }
             _unitOfWork.Save();
 
@@ -255,9 +261,12 @@ namespace BulkyWeb.Areas.Customer.Controllers
         }
         public IActionResult Remove(int cartId)
         {
-            ShoppingCart cart = _unitOfWork.ShoppingCart.Get(u => u.Id == cartId);
+            ShoppingCart cart = _unitOfWork.ShoppingCart.Get(u => u.Id == cartId, tracked: true);
             _unitOfWork.ShoppingCart.Remove(cart);
             _unitOfWork.Save();
+
+            int amountOfCarts = _unitOfWork.ShoppingCart.GetAll(u => u.ApplicationUserId == cart.ApplicationUserId).Count();
+            HttpContext.Session.SetInt32(SD.SessionCart, amountOfCarts);
 
             return RedirectToAction("Index");
         }
