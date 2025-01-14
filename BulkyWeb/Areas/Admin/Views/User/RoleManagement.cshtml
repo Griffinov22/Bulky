@@ -1,0 +1,77 @@
+﻿@model RoleManagementVM
+
+<div class="card shadow border-0 mt-4">
+    <div class="card-header bg-secondary bg-gradient m-lg-0 py-3">
+        <div class="row">
+            <div class="col-12 text-center">
+                <h2 class="text-white py-2">Manager User Role</h2>
+            </div>
+        </div>
+    </div>
+    <div class="card-body p-4">
+        <form method="POST" class="row" enctype="multipart/form-data">
+            <input asp-for="User.Id" hidden />
+            <div class="row">
+                <div class="col-12">
+                    <div class="border p-3">
+                        @* <div asp-validation-summary="ModelOnly"></div> *@
+                        <div class="form-floating py-2 col-12">
+                            <input readonly asp-for="User.Name" class="form-control border-0 shadow" />
+                            <label asp-for="User.Name" class="ms-2"></label>
+                        </div>
+
+                        <div class="form-floating py-2 col-12">
+                            <select id="role-list" asp-for="RoleId" asp-items="Model.RoleList" class="form-select border-0 shadow">
+                            </select>
+                            <label asp-for="RoleList" class="ms-2"></label>
+                        </div>
+
+                        <div class="form-floating py-2 col-12">
+                            <select id="company-list" asp-for="CompanyId" asp-items="Model.CompanyList" class="form-select border-0 shadow">
+                                <option selected disabled value="">-- select company --</option>
+                            </select>
+                            <label asp-for="CompanyList" class="ms-2"></label>
+                            <span asp-validation-for="CompanyId" class="ms-2 text-danger"></span>
+                        </div>
+
+                        <div class="row pt-2">
+                            <div class="col-6 col-xl-3">
+                                <button type="submit" class="btn btn-primary form-control">Update</button>
+                            </div>
+
+                            <div class="col-6 col-xl-3">
+                                <a asp-controller="Company" asp-action="Index" class="btn border btn-outline-primary form-control text-nowrap col-6">Back to List</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script type="text/javascript">
+        $('#role-list option:selected').text().toLowerCase() != "company" && $('#company-list').parent().hide();
+        if (@Model.User.CompanyId.HasValue.ToString().ToLower()) {
+            $('#company-list option').each((_, el) => {
+                if (el.value == @(Model.User.CompanyId ?? 0)) {
+                    el.setAttribute('selected', 'true');
+                }
+            });
+        }
+
+
+        $('#role-list').on('change', () => {
+            if ($('#role-list option:selected').text().toLowerCase() == 'company') {
+                $('#company-list').parent().show();
+            } else {
+                $('#company-list').parent().hide();
+            }
+
+        });
+
+    </script>
+
+}
