@@ -124,7 +124,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
 
         public IActionResult DeleteImage(int imageId)
         {
-            ProductImage? imageToBeDeleted = _unitOfWork.ProductImage.Get(p => p.Id == imageId);
+            ProductImage? imageToBeDeleted = _unitOfWork.ProductImage.Get(p => p.Id == imageId, tracked: true);
             int productId = imageToBeDeleted.ProductId;
 
             if (imageToBeDeleted != null)
@@ -144,44 +144,43 @@ namespace BulkyWeb.Areas.Admin.Controllers
             return RedirectToAction("Upsert", new { id = productId});
         }
 
-        #region APICALLS
-        [HttpGet]
-        public IActionResult GetAll()
-        {
-            List<Product> objProductList = _unitOfWork.Product.GetAll(includeProperties: "Category").ToList();
-            return Json(new { data = objProductList });
-        }
-
         [HttpDelete]
         public IActionResult Delete(int? id)
         {
-            Product? objToDelete = _unitOfWork.Product.Get(u => u.Id == id);
+            Product? objToDelete = _unitOfWork.Product.Get(u => u.Id == id, "ProductImages", tracked: true);
 
             if (objToDelete == null)
             {
                 return Json(new { success = false, message = "Error deleting product" });
             }
 
-            //remove image
-            //if (!String.IsNullOrEmpty(objToDelete.ImageUrl))
-            //{
-            //    string imagePathToDelete = Path.Combine(_webHostEnvironment.WebRootPath,
-            //    objToDelete.ImageUrl.TrimStart('\\'));
+            string productPath = @"images\products\product-" + objToDelete.Id;
+            string finalPath = Path.Combine(_webHostEnvironment.WebRootPath, productPath);
 
-            //    if (!String.IsNullOrEmpty(imagePathToDelete))
-            //    {
-            //        if (System.IO.File.Exists(imagePathToDelete))
-            //        {
-            //            System.IO.File.Delete(imagePathToDelete);
-            //        }
-            //    }
-            //}
+            if (Directory.Exists(finalPath))
+            {
+                string[] filePaths = Directory.GetFiles(finalPath);
+                foreach (string filePath in filePaths) 
+                {
+                    System.IO.File.Delete(filePath);
+                }
+                Directory.Delete(finalPath);
+
+            }
 
             _unitOfWork.Product.Remove(objToDelete);
             _unitOfWork.Save();
             return Json(new { success = true, message = "Delete successful" });
-            
 
+
+        }
+
+        #region APICALLS
+        [HttpGet]
+        public IActionResult GetAll()
+        {
+            List<Product> objProductList = _unitOfWork.Product.GetAll(includeProperties: "Category").ToList();
+            return Json(new { data = objProductList });
         }
         #endregion
 
