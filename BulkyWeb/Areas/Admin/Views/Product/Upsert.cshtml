@@ -11,7 +11,6 @@
     <div class="card-body p-4">
         <form method="POST" class="row" enctype="multipart/form-data">
             <input asp-for="Product.Id" hidden />
-            <input asp-for="Product.ImageUrl" hidden />
             <div class="row">
                 <div class="col-10">
                     <div class="border p-3">
@@ -63,8 +62,8 @@
                             <span asp-validation-for="Product.CategoryId" class="text-danger"></span>
                         </div>
                         <div class="form-floating py-2 col-12">
-                            <input type="file" name="file" class="form-control border-0 shadow" />
-                            <label asp-for="Product.ImageUrl" class="ms-2"></label>
+                            <input type="file" name="files" multiple class="form-control border-0 shadow" />
+                            <label asp-for="Product.ProductImages" class="ms-2"></label>
                         </div>
 
 
@@ -86,8 +85,15 @@
                     </div>
                 </div>
                 <div class="col-2">
-                    @if (Model.Product.ImageUrl != null){
-                        <img src="@Model.Product.ImageUrl" alt="product image" style="width: 100%; border: 1px solid #bbb9b9" />
+                    @if (Model.Product.ProductImages != null) {
+                        foreach(ProductImage image in Model.Product.ProductImages){
+                            <div class="border p-1 mt-3 text-center position-relative">
+                                <img src="@image.ImageUrl" alt="product image" style="width: 100%; border: 1px solid #bbb9b9" />
+                                <a asp-action="DeleteImage" class="bg-danger rounded-5 position-absolute text-decoration-none text-white fw-bold link-opacity-100-hover" style="width: 35px; aspect-ratio: 1/1; display: grid; place-content: center; top: -17.5px; right: -17.5px;" asp-route-imageId="@image.Id">
+                                    <i class="bi bi-trash-fill"></i>
+                                </a>
+                            </div>
+                        }
                     }
                 </div>
             </div>

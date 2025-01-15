@@ -45,55 +45,69 @@ namespace BulkyWeb.Areas.Admin.Controllers
             }
 
             // retreive product from id and update
-            Product product = _unitOfWork.Product.Get(u => u.Id == id);
+            Product product = _unitOfWork.Product.Get(u => u.Id == id, "ProductImages");
             if (product == null) { return NotFound(); }
 
             pvm.Product = product;
             return View(pvm);
         }
         [HttpPost]
-        public IActionResult Upsert(ProductVM pvm, IFormFile? file)
+        public IActionResult Upsert(ProductVM pvm, List<IFormFile>? files)
         {
             if (ModelState.IsValid)
             {
-                string wwwRootPath = _webHostEnvironment.WebRootPath;
-                if (file != null)
-                {
-                    string fileName = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName);
-                    string productPath = Path.Combine(wwwRootPath, @"images\product");
-
-                    // need to delete old file
-                    if (!String.IsNullOrEmpty(pvm.Product.ImageUrl))
-                    {
-                        string oldImagePath = Path.Combine(wwwRootPath, pvm.Product.ImageUrl.Trim('\\'));
-                        if (System.IO.File.Exists(oldImagePath)) 
-                        {
-                            System.IO.File.Delete(oldImagePath);
-                        }
-                    }
-
-                    // upload new image
-                    using (var fileStream = new FileStream(Path.Combine(productPath, fileName), FileMode.Create))
-                    {
-                        file.CopyTo(fileStream);
-                    }
-
-                    pvm.Product.ImageUrl = @"\images\product\" + fileName;
-
-                }
-                
+                bool isUpdate;
                 if (pvm.Product.Id != 0)
                 {
                     // update
+                    isUpdate = true;
                     _unitOfWork.Product.Update(pvm.Product);
                 }
                 else
                 {
                     // create
+                    isUpdate = false;
                     _unitOfWork.Product.Add(pvm.Product);
                 }
                 _unitOfWork.Save();
-                TempData["success"] = "Product created successfully";
+
+                string wwwRootPath = _webHostEnvironment.WebRootPath;
+                if (files != null)
+                {
+                    foreach (IFormFile file in files) 
+                    {
+                        string fileName = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName);
+                        string productPath = @"images\products\product-" + pvm.Product.Id;
+                        string finalPath = Path.Combine(wwwRootPath, productPath);
+
+                        if (!Directory.Exists(finalPath)) 
+                            Directory.CreateDirectory(finalPath);
+
+                        using (var fileStream = new FileStream(Path.Combine(finalPath, fileName), FileMode.Create))
+                        {
+                            file.CopyTo(fileStream);
+                        }
+
+                        ProductImage productImage = new()
+                        {
+                            ImageUrl = @$"\{productPath}\{fileName}",
+                            ProductId = pvm.Product.Id
+                        };
+
+                        if (pvm.Product.ProductImages == null)
+                            pvm.Product.ProductImages = new List<ProductImage>();
+                        
+                        pvm.Product.ProductImages.Add(productImage);
+
+                    }
+
+                    _unitOfWork.Product.Update(pvm.Product);
+                    _unitOfWork.Save();
+
+                }
+                
+                
+                TempData["success"] = $"Product {(isUpdate ? "updated" : "created")} successfully";
                 return RedirectToAction("Index");
             } else
             {
@@ -106,6 +120,28 @@ namespace BulkyWeb.Areas.Admin.Controllers
                 return View(pvm); // invalid Product submitted
             }
 
+        }
+
+        public IActionResult DeleteImage(int imageId)
+        {
+            ProductImage? imageToBeDeleted = _unitOfWork.ProductImage.Get(p => p.Id == imageId);
+            int productId = imageToBeDeleted.ProductId;
+
+            if (imageToBeDeleted != null)
+            {
+                if (!String.IsNullOrEmpty(imageToBeDeleted.ImageUrl))
+                {
+                    string oldImagePath = Path.Combine(_webHostEnvironment.WebRootPath, imageToBeDeleted.ImageUrl.TrimStart('\\'));
+                    if (System.IO.File.Exists(oldImagePath)) System.IO.File.Delete(oldImagePath);
+                }
+
+                _unitOfWork.ProductImage.Remove(imageToBeDeleted);
+                _unitOfWork.Save();
+
+                TempData["success"] = "Deleted product image successfully";
+            }
+
+            return RedirectToAction("Upsert", new { id = productId});
         }
 
         #region APICALLS
@@ -127,19 +163,19 @@ namespace BulkyWeb.Areas.Admin.Controllers
             }
 
             //remove image
-            if (!String.IsNullOrEmpty(objToDelete.ImageUrl))
-            {
-                string imagePathToDelete = Path.Combine(_webHostEnvironment.WebRootPath,
-                objToDelete.ImageUrl.TrimStart('\\'));
+            //if (!String.IsNullOrEmpty(objToDelete.ImageUrl))
+            //{
+            //    string imagePathToDelete = Path.Combine(_webHostEnvironment.WebRootPath,
+            //    objToDelete.ImageUrl.TrimStart('\\'));
 
-                if (!String.IsNullOrEmpty(imagePathToDelete))
-                {
-                    if (System.IO.File.Exists(imagePathToDelete))
-                    {
-                        System.IO.File.Delete(imagePathToDelete);
-                    }
-                }
-            }
+            //    if (!String.IsNullOrEmpty(imagePathToDelete))
+            //    {
+            //        if (System.IO.File.Exists(imagePathToDelete))
+            //        {
+            //            System.IO.File.Delete(imagePathToDelete);
+            //        }
+            //    }
+            //}
 
             _unitOfWork.Product.Remove(objToDelete);
             _unitOfWork.Save();

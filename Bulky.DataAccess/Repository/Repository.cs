@@ -24,7 +24,7 @@ namespace Bulky.DataAccess.Repository
         public void Add(T entity)
         {
             dbSet.Add(entity);
-            
+
         }
 
         public T Get(Expression<Func<T, bool>> filter, string? includeProperties = null, bool tracked = false)
@@ -54,7 +54,7 @@ namespace Bulky.DataAccess.Repository
 
             if (!String.IsNullOrEmpty(includeProperties))
             {
-                foreach (string includeProp in includeProperties.Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries))
+                foreach (string includeProp in includeProperties.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
                 {
                     query = query.Include(includeProp);
                 }
@@ -65,10 +65,7 @@ namespace Bulky.DataAccess.Repository
 
         public void Remove(T entity)
         {
-            if (_db.Entry(entity).State != EntityState.Detached)
-            {
-                dbSet.Remove(entity);
-            }
+            dbSet.Remove(entity);
         }
 
         public void RemoveRange(IEnumerable<T> entities)
