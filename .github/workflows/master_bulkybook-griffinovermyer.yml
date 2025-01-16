@@ -25,7 +25,7 @@ jobs:
         run: dotnet build --configuration Release
 
       - name: dotnet publish
-        run: dotnet publish -c Release -o "./myapp"
+        run: dotnet publish ./BulkyWeb/BulkyWeb.csproj -c Release -o "./myapp"
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v3
@@ -47,7 +47,7 @@ jobs:
           name: .net-app
 
       - name: List files in the current directory
-        run: ls -la
+        run: ls
       
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
