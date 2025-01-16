@@ -45,6 +45,9 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: .net-app
+
+      - name: List files in the current directory
+        run: ls -la
       
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
