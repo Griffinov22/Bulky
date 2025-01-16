@@ -51,8 +51,12 @@ builder.Services.Configure<StripeSettings>(builder.Configuration.GetSection("Str
 
 builder.Services.AddAuthentication().AddFacebook(options =>
 {
-    options.AppId = "1960023087828870";
-    options.AppSecret = "3bf33d6317e438468cf673125bec1ccf";
+    options.AppId = builder.Configuration.GetValue<string>("Facebook:AppId")!;
+    options.AppSecret = builder.Configuration.GetValue<string>("Facebook:AppSecret")!;
+}).AddMicrosoftAccount(options =>
+{
+    options.ClientId = builder.Configuration.GetValue<string>("Microsoft:ClientId")!;
+    options.ClientSecret = builder.Configuration.GetValue<string>("Microsoft:ClientSecret")!;
 });
 
 var app = builder.Build();
