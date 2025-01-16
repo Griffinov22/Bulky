@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Bulky.DataAccess.Data
 {
-    public class ApplicationDbContext : IdentityDbContext<IdentityUser>
+    public class ApplicationDbContext : IdentityDbContext<IdentityUser, Role, string, IdentityUserClaim<string>, ApplicationUserRole, IdentityUserLogin<string>, IdentityRoleClaim<string>, IdentityUserToken<string>>
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
         public DbSet<Category> Categories { get; set; }
@@ -17,6 +17,9 @@ namespace Bulky.DataAccess.Data
         public DbSet<ProductImage> ProductImages { get; set; }
         public DbSet<OrderHeader> OrderHeaders { get; set; }
         public DbSet<OrderDetail> OrderDetails { get; set; }
+        // if overridding uncomment
+        public DbSet<Role> ApplicationRoles { get; set; }
+        public DbSet<ApplicationUserRole> ApplicationUserRoles { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

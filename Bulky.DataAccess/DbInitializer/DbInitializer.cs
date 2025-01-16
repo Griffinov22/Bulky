@@ -14,10 +14,10 @@ namespace Bulky.DataAccess.DbInitializer
     public class DbInitializer : IDbInitializer
     {
 
-        private readonly UserManager<IdentityUser> _userManager;
-        private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly RoleManager<Role> _roleManager;
         private readonly ApplicationDbContext _db;
-        public DbInitializer(UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager, ApplicationDbContext db)
+        public DbInitializer(UserManager<ApplicationUser> userManager, RoleManager<Role> roleManager, ApplicationDbContext db)
         {
             _userManager = userManager;
             _roleManager = roleManager;
@@ -39,10 +39,10 @@ namespace Bulky.DataAccess.DbInitializer
             // create roles if they are not created
             if (!await _roleManager.RoleExistsAsync(SD.Role_Customer))
             {
-                await _roleManager.CreateAsync(new IdentityRole(SD.Role_Customer));
-                await _roleManager.CreateAsync(new IdentityRole(SD.Role_Company));
-                await _roleManager.CreateAsync(new IdentityRole(SD.Role_Employee));
-                await _roleManager.CreateAsync(new IdentityRole(SD.Role_Admin));
+                await _roleManager.CreateAsync((Role) new IdentityRole(SD.Role_Customer));
+                await _roleManager.CreateAsync((Role) new IdentityRole(SD.Role_Company));
+                await _roleManager.CreateAsync((Role) new IdentityRole(SD.Role_Employee));
+                await _roleManager.CreateAsync((Role) new IdentityRole(SD.Role_Admin));
 
                 // if roles are not created, then will create admin user as well
                 await _userManager.CreateAsync(new ApplicationUser

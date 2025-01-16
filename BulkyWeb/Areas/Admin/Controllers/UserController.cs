@@ -16,11 +16,11 @@ namespace BulkyWeb.Areas.Admin.Controllers
     [Authorize(Roles = SD.Role_Admin)]
     public class UserController : Controller
     {
-        private readonly ApplicationDbContext _db;
-        private readonly UserManager<IdentityUser> _userManger;
-        public UserController(ApplicationDbContext db, UserManager<IdentityUser> userManager)
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly UserManager<ApplicationUser> _userManger;
+        public UserController(IUnitOfWork unitOfWork, ApplicationDbContext db, UserManager<ApplicationUser> userManager)
         {
-            _db = db;
+            _unitOfWork = unitOfWork;
             _userManger = userManager;
         }
 
@@ -31,13 +31,13 @@ namespace BulkyWeb.Areas.Admin.Controllers
 
         public IActionResult RoleManagement(string? userId)
         {
-            ApplicationUser? user = _db.ApplicationUsers.Include(u => u.Company).FirstOrDefault(u => u.Id == userId);
+            ApplicationUser? user = _unitOfWork.ApplicationUser.Get(u => u.Id == userId, "Company");
             if (user == null) return NotFound();
 
-            string? roleId = _db.UserRoles.FirstOrDefault(u => u.UserId == userId).RoleId;
+            string? roleId = _unitOfWork.ApplicationUserRole.Get(u => u.UserId == userId).RoleId;
 
-            IEnumerable<SelectListItem> companyList = _db.Companies.Select(c => new SelectListItem { Text = c.Name, Value = c.Id.ToString() });
-            IEnumerable<SelectListItem> roleList = _db.Roles.Select(c => new SelectListItem { Text = c.Name, Value = c.Id.ToString() });
+            IEnumerable<SelectListItem> companyList = _unitOfWork.Company.GetAll().Select(c => new SelectListItem { Text = c.Name, Value = c.Id.ToString() });
+            IEnumerable<SelectListItem> roleList = _unitOfWork.Role.GetAll().Select(c => new SelectListItem { Text = c.Name, Value = c.Id.ToString() });
 
             RoleManagementVM rmvm = new()
             {
@@ -54,26 +54,27 @@ namespace BulkyWeb.Areas.Admin.Controllers
         {
             if (rmvm.RoleId is null) return NotFound();
 
-            ApplicationUser? user = _db.ApplicationUsers.FirstOrDefault(u => u.Id == rmvm.User.Id);
+            ApplicationUser? user = _unitOfWork.ApplicationUser.Get(u => u.Id == rmvm.User.Id, tracked: true);
             if (user is null) return NotFound();
+            
 
-            string currRoleId = _db.UserRoles.First(u => u.UserId == user.Id).RoleId;
-            string oldRoleName = _db.Roles.First(r => r.Id == currRoleId).Name;
-            string newRoleName = _db.Roles.First(r => r.Id == rmvm.RoleId).Name;
+            string currRoleId = _unitOfWork.ApplicationUserRole.Get(u => u.UserId == user.Id).RoleId;
+            string oldRoleName = _unitOfWork.Role.Get(r => r.Id == currRoleId).Name!;
+            string newRoleName = _unitOfWork.Role.Get(r => r.Id == rmvm.RoleId).Name!;
+
 
             if (newRoleName == SD.Role_Company && rmvm.CompanyId is null)
             {
                 ModelState.AddModelError("CompanyId", "Company users must have a selected company");
 
                 // Re-populate the CompanyList and RoleList before returning the view
-                rmvm.CompanyList = _db.Companies.Select(c => new SelectListItem { Text = c.Name, Value = c.Id.ToString() });
-                rmvm.RoleList = _db.Roles.Select(c => new SelectListItem { Text = c.Name, Value = c.Id.ToString() });
-
+                rmvm.CompanyList = _unitOfWork.Company.GetAll().Select(c => new SelectListItem { Text = c.Name, Value = c.Id.ToString() });
+                rmvm.RoleList = _unitOfWork.Role.GetAll().Select(c => new SelectListItem { Text = c.Name, Value = c.Id.ToString() });
                 return View(rmvm);
             }
             else if (newRoleName == SD.Role_Company && rmvm.CompanyId != null)
             {
-                Company? c = _db.Companies.FirstOrDefault(c => c.Id == rmvm.CompanyId);
+                Company? c = _unitOfWork.Company.Get(c => c.Id == rmvm.CompanyId);
 
                 if (c is null) return NotFound(); // prevent overriding current user and roles
 
@@ -85,8 +86,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
 
             }
 
-            _db.ApplicationUsers.Update(user);
-            await _db.SaveChangesAsync();
+            _unitOfWork.Save();
 
             await _userManger.RemoveFromRoleAsync(user, oldRoleName);
             await _userManger.AddToRoleAsync(user, newRoleName);
@@ -103,10 +103,10 @@ namespace BulkyWeb.Areas.Admin.Controllers
             ClaimsIdentity user = (ClaimsIdentity)User.Identity;
             string userId = user.FindFirst(ClaimTypes.NameIdentifier).Value;
 
-            List<ApplicationUser> users = _db.ApplicationUsers.Include(u => u.Company).OrderBy((user) => user.Id == userId).ToList();
+            List<ApplicationUser> users = _unitOfWork.ApplicationUser.GetAll(includeProperties: "Company").OrderBy(u => u.Id == userId).ToList();
 
-            var userRoles = _db.UserRoles.ToList();
-            var roles = _db.Roles.ToList();
+            var userRoles = _unitOfWork.ApplicationUserRole.GetAll().ToList();
+            var roles = _unitOfWork.Role.GetAll().ToList();
 
             foreach (ApplicationUser userObj in users)
             {
@@ -131,7 +131,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
         public async Task<IActionResult> LockUnlock([FromBody] string? id)
         {
 
-            ApplicationUser? user = _db.ApplicationUsers.FirstOrDefault(u => u.Id == id);
+            ApplicationUser? user = _unitOfWork.ApplicationUser.Get(u => u.Id == id, tracked: true);
 
             if (user == null) return Json(new { success = false, message = "Error while Locking/unlocking user" });
 
@@ -149,8 +149,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
                 user.LockoutEnd = DateTimeOffset.UtcNow.AddYears(1);
             }
 
-            _db.ApplicationUsers.Update(user);
-            await _db.SaveChangesAsync();
+            _unitOfWork.Save();
 
             return Json(new { success = true, message = $"User {(locked ? "unlocked" : "locked")} successfully" });
 

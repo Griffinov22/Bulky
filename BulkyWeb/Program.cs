@@ -7,6 +7,7 @@ using Bulky.Utility;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Stripe;
 using Bulky.DataAccess.DbInitializer;
+using Bulky.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,7 +22,10 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 // Identity scaffolding
 //options => options.SignIn.RequireConfirmedAccount = true // makes you do a confirmation email
-builder.Services.AddIdentity<IdentityUser, IdentityRole>().AddEntityFrameworkStores<ApplicationDbContext>().AddDefaultTokenProviders();
+builder.Services.AddIdentity<ApplicationUser, Role>()
+    .AddEntityFrameworkStores<ApplicationDbContext>()
+    .AddDefaultTokenProviders();
+
 builder.Services.AddScoped<IEmailSender, EmailSender>();
 builder.Services.ConfigureApplicationCookie(options => {
     options.LoginPath = "/Identity/Account/Login";
