@@ -9,6 +9,7 @@ namespace Bulky.Models
 {
     public class Role : IdentityRole
     {
-
+        public Role(string roleName) : base(roleName) { }
+        public Role() { }
     }
 }
