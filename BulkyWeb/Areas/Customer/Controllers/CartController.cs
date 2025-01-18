@@ -135,7 +135,7 @@ namespace BulkyWeb.Areas.Customer.Controllers
             if (applicationUser.CompanyId.GetValueOrDefault() == 0)
             {
                 // regular customer account and need to capture payment now
-                string domain = $"{Request.Scheme}://{Request.Host.Value}/";
+                string domain = $"{Request.Scheme}://{Request.Host.Value}";
 
                 // stripe logic
                 var options = new SessionCreateOptions
